@@ -3000,7 +3000,7 @@ function toggleFull() { if (document.fullscreenElement) document.exitFullscreen(
 /* ── 타이틀 ──
    글자마다 '뒤판(그림자·두께·남색 테)'과 '얼굴(금빛·윤기)'을 따로 그려 두고, 뒤판을 먼저 다 깐 다음 얼굴을 얹는다.
    글자 간격은 글꼴의 기본 폭이 아니라 실제 모양으로 잡는다: 이웃한 두 글자가 가장 가까운 곳의 틈을 같게(L·K·Y·A·W처럼 비스듬한 글자도 벌어져 보이지 않게). */
-let TITLE = null;
+let TITLE = null; window.__resetTitle = () => { TITLE = null; };
 function glyphShape(ch, font, size) { // 줄마다 잉크의 왼쪽 끝·오른쪽 끝 (원점 = 글자 시작점·기준선)
   const pad = 30, c = document.createElement('canvas'); c.width = Math.ceil(size * 1.5) + pad * 2; c.height = Math.ceil(size * 1.6);
   const x = c.getContext('2d', { willReadFrequently: true }), base = Math.round(size * 1.15); x.font = font; x.textBaseline = 'alphabetic'; x.fillText(ch, pad, base);
@@ -3024,7 +3024,7 @@ function pairDist(A, B, gMin, gAvg, cap) { // 두 글자 시작점 사이 거리
 }
 function makeTitle() {
   const words = ['LUCKY', 'DRAW'], size = 178, font = `700 ${size}px ${FONT}`, FAT = 15, OL = 30, DEP = 20, RIM = 4.5, EDGE = FAT / 2 + OL / 2 + RIM, pad = 60;
-  const GMIN = FAT + 9, GAVG = FAT + 21, WORD = 38;   // 얼굴끼리 가장 가까운 틈 9, 평균 틈 21, 낱말 사이는 44 더
+  const TSP = window.__TSP || [15, 28, 64], GMIN = FAT + TSP[0], GAVG = FAT + TSP[1], WORD = TSP[2];   /* 시험용: window.__TSP 로 자간을 바꿔 볼 수 있다 */   // 얼굴끼리 가장 가까운 틈 9, 평균 틈 21, 낱말 사이는 44 더
   const out = { ls: [], FAT, OL, DEP, EDGE }; let ox = 0, prev = null, capTop = 0;
   for (let wi = 0; wi < words.length; wi++) for (const ch of words[wi]) {
     const g = glyphShape(ch, font, size);
