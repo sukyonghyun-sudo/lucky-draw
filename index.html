@@ -307,6 +307,7 @@ input[type=text]{box-sizing:border-box;border:0;font-family:inherit;font-weight:
 </style>
 </head>
 <body>
+<canvas id="game-container" width="960" height="540" style="position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:-1;pointer-events:none;font-family:sans-serif" aria-hidden="true"></canvas>
 <div id="rotate" class="hide"><svg viewBox="0 0 64 64" fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round"><rect x="20" y="6" width="24" height="52" rx="5"/><path d="M29 50h6"/></svg><b>휴대폰을 세로로 돌려 주세요</b><span>세로 화면에서만 할 수 있어요</span></div>
 <div id="stage">
   <canvas id="gl" width="1920" height="1080"></canvas>
@@ -3076,8 +3077,15 @@ function frame(ts) {
   if (G.loading && !G.ldRender) { last = ts / 1000; requestAnimationFrame(frame); return; }   // 로딩 중에는 뒤의 3D 화면을 그리지 않는다(막대가 끊기지 않게) — 끝나기 직전에 한 번 그려 셰이더를 미리 만든다
   const now = ts / 1000; let dt = Math.min(0.05, Math.max(0, now - last)); last = now;
   if (!G.paused) { const reps = G.ff && G.phase !== 'lobby' && G.phase !== 'win' && G.phase !== 'winhit' ? 3 : 1; for (let i = 0; i < reps; i++) update(dt); }
-  render();
+  render(); capSnap(now);
   requestAnimationFrame(frame);
+}
+/* MSW 스튜디오 안(틀 안에서 열렸을 때): 스튜디오는 '#game-container' 를 그림으로 찍어 부팅을 확인한다.
+   무대 전체(글꼴 3MB 포함)를 찍으면 한 번에 0.8초 넘게 멈추므로, 게임 화면을 0.5초마다 작게 복사해 두는 캔버스를 대신 찍게 한다. */
+const CAP = (() => { try { if (window.top === window) return null; } catch (e) {} const c = document.getElementById('game-container'); return c && c.getContext ? { c, x: c.getContext('2d'), t: -1 } : null; })();
+function capSnap(now) {
+  if (!CAP || now - CAP.t < 0.5) return; CAP.t = now;
+  try { const { c, x } = CAP; x.fillStyle = '#4fb0f5'; x.fillRect(0, 0, c.width, c.height); if (G3.ok) x.drawImage($('#gl'), 0, 0, c.width, c.height); x.drawImage(cv, 0, 0, c.width, c.height); } catch (e) {}
 }
 // 시험용 손잡이
 window.__G = G; window.__A = A; window.__w2s = w2s; window.__AU = AU; window.__CAST = CAST; window.__startGame = startGame; window.__step = (dt, n) => { for (let i = 0; i < n; i++) update(dt); render(); };
