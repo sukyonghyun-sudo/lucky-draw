@@ -2296,13 +2296,13 @@ function drawWinHit() { // 당첨 순간에 얹는 글자: 위에는 「당첨!�
     for (let i = 0; i < 2; i++) drawSpr('star', W / 2 + (i ? hrb.r + 56 : hrb.l - 56), 168 + hrb.y + Math.sin(t * 4 + i * 2) * 6, 2.4 * sc, 0.5, 0.5, 1, Math.sin(t * 2 + i) * 0.3);
   }
   const fs = n === 1 ? 70 : n <= 3 ? 52 : n <= 6 ? 40 : 32, per = n <= 5 ? n : Math.ceil(n / 2), rows = Math.ceil(n / per), ph2 = fs + 36;
-  ctx.save(); ctx.font = `900 ${fs}px ${FONT}`;
+  ctx.save(); ctx.font = `900 ${fs}px ${FONT}`; const maxW = Math.max(...wn.map(b => ctx.measureText(b.name).width));
   wn.forEach((b, i) => {
     const k = clamp((t - 1.0 - i * 0.14) / 0.3, 0, 1); if (k <= 0) return;
-    const row = Math.floor(i / per), inRow = Math.min(per, n - row * per), col = i - row * per, cw = Math.min(n === 1 ? 900 : 1700 / inRow, Math.max(240, ctx.measureText(b.name).width + 90));
+    const row = Math.floor(i / per), inRow = Math.min(per, n - row * per), col = i - row * per, cw = Math.min(n === 1 ? 900 : 1700 / per - 18, Math.max(240, maxW + 90));   // 같은 줄 이름판은 모두 같은 폭
     const x = W / 2 + (col - (inRow - 1) / 2) * (cw + 18), y = H - 96 - (rows - 1 - row) * (ph2 + 14) - ph2 / 2, e = k < 1 ? easeBack(k) : 1;
     ctx.save(); ctx.translate(x, y); ctx.scale(e, e); plate(-cw / 2, -ph2 / 2, cw, ph2, PL.cream, 4); ctx.restore();
-    T(b.name, x, y + 2, fs, { w: 900, fill: C_INK, glow: false, sc: e * Math.min(1, (cw - 50) / Math.max(1, ctx.measureText(b.name).width)) });
+    T(b.name, x, y, fs, { w: 900, fill: C_INK, glow: false, ink: true, sc: e * Math.min(1, (cw - 50) / Math.max(1, ctx.measureText(b.name).width)) });
   });
   ctx.restore();
   if (t > 4.4) { ctx.fillStyle = `rgba(255,250,235,${clamp((t - 4.4) / 0.75, 0, 1)})`; ctx.fillRect(0, 0, W, H); }
@@ -2333,11 +2333,18 @@ function drawWin() {
   if (A.logo) { ctx.imageSmoothingEnabled = false; ctx.drawImage(logoImg, 40, 30, A.logoWH[0] * 0.8, A.logoWH[1] * 0.8); }
   // 당첨자
   const gap = n === 1 ? 0 : Math.min(380, 1640 / n), baseY = n === 1 ? 790 : 770;
+  // 모두 같은 크기로: 메이플 캐릭터는 몸집이 다 같으니 배율이 같으면 같은 크기로 보인다(그림 크기가 다른 건 머리·모자·날개 같은 장식 때문)
+  const avs = wn.map(b => A.av[b.av]), hs = avs.map(a => a[3]).sort((p, q) => p - q), ws = avs.map(a => a[2]).sort((p, q) => p - q);
+  const SC = n === 1 ? clamp(Math.floor(420 / avs[0][3]), 3, 7) : clamp(Math.floor(Math.min(340 / hs[hs.length - 1], gap * 0.96 / ws[Math.floor(ws.length / 2)])), 2, 5);
+  // 이름판도 모두 같은 크기: 가장 긴 이름이 들어가는 한 가지 글자 크기
+  ctx.save(); ctx.font = `900 100px ${FONT}`; const nw100 = wn.map(b => ctx.measureText(b.name).width); ctx.restore();
+  const PW = n === 1 ? Math.max(420, Math.min(1300, nw100[0] * 0.84 + 100)) : gap * 0.86;
+  const FS = n === 1 ? clamp(Math.floor((PW - 100) * 100 / Math.max(1, nw100[0])), 52, 84) : clamp(Math.floor(Math.min(...nw100.map(v => (PW - 22) * 100 / Math.max(1, v)))), 28, 40);   // 아주 긴 이름 하나 때문에 모두 너무 작아지지 않게(그 이름만 옆으로 좁힌다)
   wn.forEach((b, i) => {
     const x = W / 2 + (i - (n - 1) / 2) * gap, d = 0.3 + i * 0.22, k = t > d ? easeBack((t - d) / 0.45) : 0;
     if (k <= 0) return;
     const a = A.av[b.av], pt = t - d;
-    const sc = n === 1 ? clamp(Math.floor(420 / a[3]), 3, 7) : clamp(Math.floor(Math.min(340 / a[3], gap * 0.86 / a[2])), 2, 5);
+    const sc = SC;
     ctx.imageSmoothingEnabled = true;
     drawFxC('wings', Math.floor(t / 0.09), x, baseY - 34 * sc, sc * 0.6 * k, 0.9);
     if (pt < 20 * 0.07) drawFx('pillar', Math.floor(pt / 0.07), x, baseY + 10, false, n === 1 ? 1.9 : 1.1, 1);
@@ -2346,10 +2353,10 @@ function drawWin() {
     ctx.drawImage(avImg, a[0], a[1], a[2], a[3], -a[4], -a[5], a[2], a[3]); ctx.restore();
     const na = clamp((pt - 0.2) / 0.3, 0, 1); if (na <= 0) return;
     ctx.save(); ctx.globalAlpha = na;
-    const fs = n === 1 ? clamp(Math.floor(1300 / Math.max(4, b.name.length) * 0.9), 52, 84) : clamp(Math.floor(gap / Math.max(3, b.name.length) * 0.8), 24, 46);
-    ctx.font = `900 ${fs}px ${FONT}`; const w = Math.max(n === 1 ? 420 : gap * 0.8, ctx.measureText(b.name).width + fs * 1.2), ph2 = fs * 1.55, py = baseY + 26;
-    plate(x - w / 2, py, w, ph2, PL.cream, n === 1 ? 5 : 3); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = C_INK; ctx.fillText(b.name, x, py + ph2 / 2 + 2);
-    if (n > 1) { plate(x - 24, py - 30, 48, 40, PL.gold, 3); ctx.font = `900 24px ${FONT}`; ctx.fillStyle = '#5a2c00'; ctx.fillText(String(i + 1), x, py - 9); }
+    const fs = FS, w = PW, ph2 = Math.round(fs * 1.4 + 14), py = baseY + (n > 1 ? 32 : 26);
+    ctx.font = `900 ${fs}px ${FONT}`; plate(x - w / 2, py, w, ph2, PL.cream, n === 1 ? 5 : 3);
+    { const tw = ctx.measureText(b.name).width, sq = Math.min(1, (w - 18) / Math.max(1, tw)); ctx.save(); ctx.translate(x, py + ph2 / 2); ctx.scale(sq, 1); ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; const rm = ctx.measureText('가번0'); ctx.fillStyle = C_INK; ctx.fillText(b.name, 0, (rm.actualBoundingBoxAscent - rm.actualBoundingBoxDescent) / 2); ctx.restore(); }   // 글자 모양 기준으로 판 한가운데(줄마다 같은 높이)   // 아주 긴 이름만 옆으로 살짝 좁힌다
+    if (n > 1) { plate(x - 22, py - 30, 44, 36, PL.gold, 3); inkText(String(i + 1), x, py - 12, `700 22px ${FONT}`, '#5a2c00'); }   // 순위 판은 이름판에 살짝만 걸치게   // 순위 숫자: 금색 판 한가운데
     ctx.restore();
   });
   // 아래에서 폴짝거리는 응원단
